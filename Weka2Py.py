@@ -82,12 +82,12 @@ def main(argv):
 	try:
 		opts, args = getopt.getopt(argv, "hb:o:c:", ['buffer=',  'output=', 'classField='])
 	except getopt.GetoptError:
-		print('Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>')
+		print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
 		sys.exit(2)
 
 	for opt, arg in opts:
 		if opt == '-h':
-			print('Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>')
+			print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
 			sys.exit()
 		elif opt in ("-b", "--buffer"):
 			bFile = arg
@@ -96,7 +96,7 @@ def main(argv):
 		elif opt in ("-c", "--classField"):
 			classFieldname = arg
 		else:
-			print('Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>')
+			print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
 			sys.exit()
 
 
@@ -118,7 +118,7 @@ if __name__ == '__main__':
 	try:
 		arg = sys.argv[1]
 	except IndexError:
-		print('Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>')
+		print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
 		sys.exit(2)
 
 	main(sys.argv[1:])

@@ -82,12 +82,12 @@ def main(argv):
 	try:
 		opts, args = getopt.getopt(argv, "hb:o:c:", ['buffer=',  'output=', 'classField='])
 	except getopt.GetoptError:
-		print 'Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>'
+		print('Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>')
 		sys.exit(2)
 
 	for opt, arg in opts:
 		if opt == '-h':
-			print 'Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>'
+			print('Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>')
 			sys.exit()
 		elif opt in ("-b", "--buffer"):
 			bFile = arg
@@ -96,25 +96,29 @@ def main(argv):
 		elif opt in ("-c", "--classField"):
 			classFieldname = arg
 		else:
-			print 'Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>'
+			print('Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>')
 			sys.exit()
 
 
+	print("Read {}...\n".format(bFile))
 	content = ReadBuffer(bFile)
 	decisionTree = CleanDT(content)
 
+	print("Generate script...\n")
 	strDecisionTree = ''
 	for idx, line in enumerate(decisionTree):
 		strDecisionTree += GenStatement(decisionTree, classFieldname, idx)
 
+	print("Writing output to {}\n".format(oFile))
 	with open(oFile, 'w') as outputFile:
 		outputFile.write(strDecisionTree)
+	print("Done!!!\n")
 
 if __name__ == '__main__':
 	try:
 		arg = sys.argv[1]
 	except IndexError:
-		print 'Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>'
+		print('Weka2Arc -b <fullpath filename of buffer file> -f <fullpath filename to output file>')
 		sys.exit(2)
 
 	main(sys.argv[1:])

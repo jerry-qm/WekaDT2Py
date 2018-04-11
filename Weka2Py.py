@@ -17,6 +17,8 @@
 
 import os, sys, getopt, re
 
+bandList = []
+
 def ReadBuffer(bufferFilename):
 	with open(bufferFilename, 'rb') as bufferFile:
 		content = bufferFile.readlines()
@@ -39,7 +41,7 @@ def FindMatch(buf, condition):
 			return True
 	return False
 
-def GenStatement(buf, classFieldname, level=0):
+def GenStatement(buf, level=0):
 	conditionString = ''
 	thenString = ''
 	elseString = ''
@@ -49,6 +51,7 @@ def GenStatement(buf, classFieldname, level=0):
 
 	if match:
 		matchTuple = match.groupdict()
+		bandList.append(matchTuple['leftOperand'])
 		depth = matchTuple['depth'].count('|')
 		tab = '    '
 		tabs = tab*depth
@@ -73,7 +76,7 @@ def GenStatement(buf, classFieldname, level=0):
 			conditionString = '{}if {} {} {}:'.format(tabs, matchTuple['leftOperand'], matchTuple['operator'], matchTuple['rightOperand'])
 
 		if (matchTuple['ifTrue']):
-			thenString = '{}{}{} = "{}"\n'.format(tab, tabs, classFieldname, matchTuple['ifTrue'])
+			thenString = '{}{}{}return "{}"\n'.format(tab, tab, tabs, matchTuple['ifTrue'])
 	return "{}\n{}".format(conditionString, thenString)
 
 def main(argv):
@@ -93,8 +96,6 @@ def main(argv):
 			bFile = arg
 		elif opt in ("-o", "--output"):
 			oFile = arg
-		elif opt in ("-c", "--classField"):
-			classFieldname = arg
 		else:
 			print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
 			sys.exit()
@@ -107,12 +108,13 @@ def main(argv):
 	print("Generate script...\n")
 	strDecisionTree = ''
 	for idx, line in enumerate(decisionTree):
-		strDecisionTree += GenStatement(decisionTree, classFieldname, idx)
+		strDecisionTree += "    " + GenStatement(decisionTree, idx)
 
 	print("Writing output to {}\n".format(oFile))
+	bandList.sort()
 	with open(oFile, 'w') as outputFile:
+		outputFile.write("def Classify({}):\n".format(','.join(set(bandList))))
 		outputFile.write(strDecisionTree)
-	print("Done!!!\n")
 
 if __name__ == '__main__':
 	try:

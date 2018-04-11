@@ -1,11 +1,12 @@
-
 # WekaDT2Py
-Convert Weka (version 3.8.2) Decision Tree to python if statement
+Convert Weka (version 3.8.2) Decision Tree to python function for used in ArcGIS field calculator
 
+## Requirement:
+Python 2.7
 
 ## Syntax:
 
-    Weka2Py.py -b <DTFile> -o <OutputFil> -c <classname>
+    Weka2Py.py -b <DecisionTreeFile> -o <OutputFile>
 
 ## Options:
 
@@ -15,11 +16,7 @@ Mandatory, Text file containing **only** the Decision tree result from Weka, see
 
 - -o
 --output
-Mandatory, Fullpath filename text file which will store the conversion result
-
-- -c
---classField
-Mandatory, any alphanumeric string field name that you use in your featur attribute table that containing the class name
+Mandatory, Full path filename text file which will store the conversion result
 
 ## Example:
 ### Input:
@@ -41,31 +38,32 @@ Mandatory, any alphanumeric string field name that you use in your featur attrib
 
  ### Command:
  #### Windows: 
-    python.exe Weka2Py.py -b "/dirname/wekadt.txt" -o "/dirname/wekadt-output.txt" -c "class"
+    python.exe Weka2Py.py -b "/dirname/wekadt.txt" -o "/dirname/wekadt-output.txt"
 ####  Linux:
-    Weka2Py.py -b "/dirname/wekadt.txt" -o "/dirname/wekadt-output.txt" -c "class"
+    Weka2Py.py -b "/dirname/wekadt.txt" -o "/dirname/wekadt-output.txt"
 
 ### Output
 
-    if i398_201_4 <= 971:
-        if i398_201_4 <= 687:
-            class = "Water"
-        else:
-            if i398_201_1 <= 1147:
-                class = "Land"
+    def Classify(i398_201_7,i398_201_4,i398_201_3,i398_201_1):
+        if i398_201_4 <= 971:
+            if i398_201_4 <= 687:
+                return "Water"
             else:
-                class = "Water"
-    else:
-        if i398_201_3 <= 1150:
-            class = "Land"
-        else:
-            if i398_201_7 <= 29622:
-                if i398_201_7 <= 29386:
-                    if i398_201_7 <= 28823:
-                        class = "Water"
-                    else:
-                        class = "Land"
+                if i398_201_1 <= 1147:
+                    return "Land"
                 else:
-                    class = "Water"
+                    return "Water"
+        else:
+            if i398_201_3 <= 1150:
+                return "Land"
             else:
-                class = "Land"
+                if i398_201_7 <= 29622:
+                    if i398_201_7 <= 29386:
+                        if i398_201_7 <= 28823:
+                            return "Water"
+                        else:
+                            return "Land"
+                    else:
+                        return "Water"
+                else:
+                    return "Land"

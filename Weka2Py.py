@@ -111,9 +111,11 @@ def main(argv):
 		strDecisionTree += "    " + GenStatement(decisionTree, idx)
 
 	print("Writing output to {}\n".format(oFile))
-	bandList.sort()
+
+	sortedBand = list(set(bandList))
+	sortedBand = sorted(sortedBand)
 	with open(oFile, 'w') as outputFile:
-		outputFile.write("def Classify({}):\n".format(','.join(set(bandList))))
+		outputFile.write("def Classify({}):\n".format(', '.join(sortedBand)))
 		outputFile.write(strDecisionTree)
 
 if __name__ == '__main__':

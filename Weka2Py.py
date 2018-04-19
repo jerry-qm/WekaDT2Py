@@ -16,111 +16,81 @@
 #! /usr/bin/python
 
 import os, sys, getopt, re
-
-bandList = []
-
-def ReadBuffer(bufferFilename):
-	with open(bufferFilename, 'rb') as bufferFile:
-		content = bufferFile.readlines()
-		content = [x.strip() for x in content];
-	return content
-
-def CleanDT(buffer):
-	decisionTree = []
-	isDT = False
-
-	p = re.compile('\(.*\)$')
-	for idx, line in enumerate(buffer):
-		buffer[idx] = p.sub('', line.replace(' ', ''))
-
-	return buffer
-
-def FindMatch(buf, condition):
-	for line in buf:
-		if line.find(condition) >= 0:
-			return True
-	return False
-
-def GenStatement(buf, level=0):
-	conditionString = ''
-	thenString = ''
-	elseString = ''
-
-	p = re.compile('^(?P<depth>\|*)(?P<leftOperand>[\w\-]+)(?P<operator>[<>=]+)(?P<rightOperand>[\d\.\-]+)(?P<thenSymbol>\:?)(?P<ifTrue>[\w\-]+)?$')
-	match = p.match(buf[level])
-
-	if match:
-		matchTuple = match.groupdict()
-		bandList.append(matchTuple['leftOperand'])
-		depth = matchTuple['depth'].count('|')
-		tab = '    '
-		tabs = tab*depth
-
-		if matchTuple['operator'] == '>':
-			strMatchCondition = '<='
-		elif matchTuple['operator'] == '>=':
-			strMatchCondition = '<'
-		elif matchTuple['operator'] == '<':
-			strMatchCondition = '>='
-		elif matchTuple['operator'] == '<=':
-			strMatchCondition = '>'
-
-		strCondition = "{}{}{}".format(matchTuple['leftOperand'], strMatchCondition, matchTuple['rightOperand'])
-
-		if level > 0:
-			if FindMatch(buf[:level], strCondition):
-				conditionString = '{}else:'.format(tabs)
-			else:
-				conditionString = '{}if {} {} {}:'.format(tabs, matchTuple['leftOperand'], matchTuple['operator'], matchTuple['rightOperand'])
-		else: 
-			conditionString = '{}if {} {} {}:'.format(tabs, matchTuple['leftOperand'], matchTuple['operator'], matchTuple['rightOperand'])
-
-		if (matchTuple['ifTrue']):
-			thenString = '{}{}{}return "{}"\n'.format(tab, tab, tabs, matchTuple['ifTrue'])
-	return "{}\n{}".format(conditionString, thenString)
+import argparse
+import ruleset.weka
 
 def main(argv):
 	os.system('cls')
 
-	try:
-		opts, args = getopt.getopt(argv, "hb:o:c:", ['buffer=',  'output=', 'classField='])
-	except getopt.GetoptError:
-		print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
-		sys.exit(2)
+	parser = argparse.ArgumentParser(description='Translate Weka decision tree to python conditional')
+	parser.add_argument(
+		'-b',
+		'--buffer',
+		type=argparse.FileType('r'),
+		required=True,
+		help='Fullpath filename containing decision tree text',
+		dest='bFile')
+	parser.add_argument(
+		'-o',
+		'--output',
+		type=argparse.FileType('w'),
+		required=True,
+		help='Fullpath filename for output',
+		dest='oFile')
 
-	for opt, arg in opts:
-		if opt == '-h':
-			print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
-			sys.exit()
-		elif opt in ("-b", "--buffer"):
-			bFile = arg
-		elif opt in ("-o", "--output"):
-			oFile = arg
-		else:
-			print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
-			sys.exit()
+	args = parser.parse_args()
+
+	print("Read {}...\n".format(args.bFile.name))
+	content = ruleset.weka.ReadBuffer(args.bFile)
+	decisionTree = ruleset.weka.CleanDT(content)
 
 
-	print("Read {}...\n".format(bFile))
-	content = ReadBuffer(bFile)
-	decisionTree = CleanDT(content)
-
-	print("Generate script...\n")
-	strDecisionTree = ''
+	print("Translate script...\n")
+	objDTs = []
 	for idx, line in enumerate(decisionTree):
-		strDecisionTree += "    " + GenStatement(decisionTree, idx)
+		objDTs.append(ruleset.weka.GenStatement(decisionTree, idx))
 
-	print("Writing output to {}\n".format(oFile))
-	bandList.sort()
-	with open(oFile, 'w') as outputFile:
-		outputFile.write("def Classify({}):\n".format(','.join(set(bandList))))
-		outputFile.write(strDecisionTree)
+	#Find True condition
+	for idx, objDT in enumerate(objDTs):
+		if objDT.trueBlock == None:
+			objDT.trueBlock = objDTs[idx+1]
+			objDTs[idx+1].parentLine = objDT.lineNo
+
+	#Find False condition and collect band name
+	band_list = []
+	main_operator = objDTs[0].operator
+	if main_operator == '<=':
+		else_operator = '>'
+	elif main_operator == '>=':
+		else_operator = '<='
+	for idx, objDT in enumerate(objDTs):
+
+		band_list.append(objDT.leftOperand)
+		if objDT.falseBlock == None and objDT.operator == main_operator:
+
+			for idxFalse, objFalse in enumerate(objDTs[idx+1:]):
+				if (objFalse.leftOperand == objDT.leftOperand) and (objFalse.operator == else_operator) and (objFalse.rightOperand == objDT.rightOperand) and (objFalse.depth == objDT.depth) and (objFalse.parentLine == None):
+					objDT.falseBlock = objFalse
+					objFalse.parentLine = objDT.lineNo-1
+					break
+
+	sorted_operand = list(set(band_list))
+	sorted_operand = sorted(sorted_operand)
+	for idx, operand in enumerate(sorted_operand):
+		sorted_operand[idx] = '!{}!'.format(operand)
+
+	print('Write output to {}\n'.format(args.oFile.name))
+	with args.oFile as outputFile:
+		outputFile.write("def Classify({}):\n".format(', '.join(sorted_operand)))
+		outputFile.write(objDTs[0].__str__())
+
+	print('Done!!\n')
 
 if __name__ == '__main__':
 	try:
 		arg = sys.argv[1]
 	except IndexError:
-		print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file> -c <className>')
+		print('Weka2Arc -b <fullpath filename of buffer file> -o <fullpath filename to output file>')
 		sys.exit(2)
 
 	main(sys.argv[1:])
